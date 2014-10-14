@@ -61,12 +61,12 @@ public class Main {
     public static void main(String[] args) throws SQLException {
         try {
             if (args.length == 0 || StringUtils.isBlank(args[0])) {
-                System.out.println("Inform the database name.");
+                log.info("Inform the database name.");
                 System.exit(1);
             }
 
             String databaseName = args[0];
-            System.out.println("Database name: " + databaseName);
+            log.info("Database name: " + databaseName);
 
             ds = getDatasource(databaseName);
             conn = ds.getConnection();
@@ -101,14 +101,13 @@ public class Main {
 
         } catch (Exception ex) {
             log.error("Error: ", ex);
-            System.out.println(ex.getCause());
             System.exit(1);
         } finally {
-            System.out.println("Closing datasource...");
+            log.info("Closing datasource...");
             try {
                 ds.shutdown();
             } catch (Exception e) {
-                System.out.println("Datasource already closed.");
+                log.info("Datasource already closed.");
             }
         }
         System.exit(0);
@@ -124,7 +123,7 @@ public class Main {
         BufferedReader reader
                 = new BufferedReader(new InputStreamReader(p.getInputStream()));
 
-        System.out.println(command);
+        log.info(command);
         String line;
         while ((line = reader.readLine()) != null) {
             if (StringUtils.isNotBlank(line)) {
