@@ -119,15 +119,17 @@ public class Main {
                 new String[]{String.valueOf(rev - 1), String.valueOf(rev)});
 
         Process p = Runtime.getRuntime().exec(command);
+        log.info(command);
         p.waitFor();
         BufferedReader reader
                 = new BufferedReader(new InputStreamReader(p.getInputStream()));
-
-        log.info(command);
         String line;
         while ((line = reader.readLine()) != null) {
             if (StringUtils.isNotBlank(line)) {
+                log.info(line);
                 insert(line, rev);
+            } else {
+                log.info("Empty line");
             }
         }
     }
