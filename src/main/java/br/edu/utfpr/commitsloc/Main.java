@@ -118,7 +118,7 @@ public class Main {
                 new String[]{"{1}", "{2}"},
                 new String[]{String.valueOf(rev - 1), String.valueOf(rev)});
 
-        Process p = Runtime.getRuntime().exec(command.split(" "));
+        Process p = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", command});
         log.info(command);
         p.waitFor();
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -127,7 +127,8 @@ public class Main {
         // reads the output from command
         String line;
         while ((line = reader.readLine()) != null) {
-            if (StringUtils.isNotBlank(line)) {
+            if (StringUtils.isNotBlank(line)
+                    && !StringUtils.equals("INSERTED,DELETED,MODIFIED,FILENAME", line)) {
                 log.info(line);
                 insert(line, rev);
             } else {
