@@ -118,7 +118,7 @@ public class Main {
                 new String[]{"{1}", "{2}"},
                 new String[]{String.valueOf(rev - 1), String.valueOf(rev)});
 
-        Process p = Runtime.getRuntime().exec(command);
+        Process p = Runtime.getRuntime().exec(command.split(" "));
         log.info(command);
         p.waitFor();
         BufferedReader reader
