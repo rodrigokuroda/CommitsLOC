@@ -152,8 +152,8 @@ public class Main {
 
         stmt.setString(1, filename);
         stmt.setInt(2, rev);
-        stmt.setInt(1, inserted);
-        stmt.setInt(2, deleted);
+        stmt.setInt(3, inserted);
+        stmt.setInt(4, deleted);
         stmt.executeUpdate();
     }
 
