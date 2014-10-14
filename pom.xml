@@ -37,6 +37,10 @@
 
     <build>
         <plugins>
+            <!--
+                To build WITHOUT dependencies, run:
+                mvn clean install
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -49,6 +53,10 @@
                     </archive>
                 </configuration>
             </plugin>
+            <!--
+                To build WITH dependencies, run:
+                mvn clean compile assembly:single
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
