@@ -144,7 +144,7 @@ public class Main {
         stmt.setInt(2, rev);
         stmt.setInt(1, inserted);
         stmt.setInt(2, deleted);
-        stmt.execute();
+        stmt.executeUpdate();
     }
 
 }
