@@ -121,8 +121,10 @@ public class Main {
         Process p = Runtime.getRuntime().exec(command.split(" "));
         log.info(command);
         p.waitFor();
-        BufferedReader reader
-                = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+
+        // reads the output from command
         String line;
         while ((line = reader.readLine()) != null) {
             if (StringUtils.isNotBlank(line)) {
@@ -131,6 +133,11 @@ public class Main {
             } else {
                 log.info("Empty line");
             }
+        }
+
+        // read any errors from the attempted command
+        while ((line = error.readLine()) != null) {
+            log.info(line);
         }
     }
 
