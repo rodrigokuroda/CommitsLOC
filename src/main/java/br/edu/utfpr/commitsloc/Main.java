@@ -73,7 +73,7 @@ public class Main {
 
             Statement createTable = conn.createStatement();
             createTable.execute("CREATE TABLE IF NOT EXISTS commits_files_lines ("
-                    + "id INTEGER PRIMARY KEY,"
+                    + "id INTEGER PRIMARY KEY AUTO_INCREMENT,"
                     + "file_links_id INT(11),"
                     + "added INTEGER,"
                     + "removed INTEGER)");
