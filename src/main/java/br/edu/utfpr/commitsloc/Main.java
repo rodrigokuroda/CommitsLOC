@@ -35,11 +35,11 @@ public class Main {
 //                               -p, --show-c-function: Show C function name
     private static final String SVN_DIFF = "svn diff -x -bw -r {1}:{2} {3} | diffstat -t";
     private static final String INSERT = "INSERT INTO commits_files_lines"
-            + " ( file_links_id,"
+            + " ( file_id,"
             + " added,"
             + " removed)"
             + " VALUES"
-            + " ((SELECT id FROM file_links WHERE file_path LIKE ? AND commit_id = (SELECT id FROM scmlog WHERE rev = ?)),?,?)";
+            + " ((SELECT fil.id FROM files fil JOIN actions a ON fil.id = a.file_id JOIN file_links fill ON fill.file_id = fil.id WHERE fill.file_path LIKE ? AND a.commit_id = (SELECT id FROM scmlog WHERE rev = ?)),?,?)";
 
     private static HikariDataSource ds;
     private static Connection conn;
@@ -74,7 +74,7 @@ public class Main {
             Statement createTable = conn.createStatement();
             createTable.execute("CREATE TABLE IF NOT EXISTS commits_files_lines ("
                     + "id INTEGER PRIMARY KEY AUTO_INCREMENT,"
-                    + "file_links_id INT(11),"
+                    + "file_id INT(11),"
                     + "added INTEGER,"
                     + "removed INTEGER)");
 
@@ -91,7 +91,7 @@ public class Main {
                     "SELECT rev "
                     + "FROM scmlog WHERE id > (SELECT COALESCE(MAX(commit_id), 0) "
                     + "FROM commits_files_lines cfl "
-                    + "JOIN file_links fl ON fl.id = cfl.file_links_id) "
+                    + "JOIN files fil ON fil.id = cfl.file_id) "
                     + "ORDER BY rev");
 
             while (revisions.next()) {
