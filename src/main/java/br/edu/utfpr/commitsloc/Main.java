@@ -5,6 +5,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -39,7 +41,7 @@ public class Main {
             + " added,"
             + " removed)"
             + " VALUES"
-            + " ((SELECT fil.id FROM files fil JOIN actions a ON fil.id = a.file_id JOIN file_links fill ON fill.file_id = fil.id WHERE fill.file_path LIKE ? AND a.commit_id = (SELECT id FROM scmlog WHERE rev = ?)),?,?)";
+            + " ((SELECT fil.id FROM files fil JOIN actions a ON fil.id = a.file_id JOIN file_links fill ON fill.file_id = fil.id WHERE fill.file_path LIKE ? AND fil.file_name = ? AND a.commit_id = (SELECT id FROM scmlog WHERE rev = ?)),?,?)";
 
     private static HikariDataSource ds;
     private static Connection conn;
@@ -149,12 +151,15 @@ public class Main {
         PreparedStatement stmt = conn.prepareStatement(INSERT);
         int inserted = Integer.valueOf(split[0]);
         int deleted = Integer.valueOf(split[1]);
-        String filename = split[3];
+        String filepath = split[3];
+        Path p = Paths.get(filepath);
+        String filename = p.getFileName().toString();
 
-        stmt.setString(1, "%" + filename);
-        stmt.setInt(2, rev);
-        stmt.setInt(3, inserted);
-        stmt.setInt(4, deleted);
+        stmt.setString(1, "%" + filepath);
+        stmt.setString(2, filename);
+        stmt.setInt(3, rev);
+        stmt.setInt(4, inserted);
+        stmt.setInt(5, deleted);
         stmt.executeUpdate();
     }
 
