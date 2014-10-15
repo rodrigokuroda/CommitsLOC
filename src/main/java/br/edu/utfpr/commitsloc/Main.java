@@ -90,12 +90,13 @@ public class Main {
 
             Statement revisionsStmt = conn.createStatement();
             ResultSet revisions = revisionsStmt.executeQuery(
-                    "SELECT rev "
-                    + "FROM scmlog WHERE id > (SELECT COALESCE(MAX(a.commit_id), 0) "
+                    "SELECT s.rev "
+                    + "FROM scmlog s WHERE s.date > (SELECT COALESCE(MAX(s2.date), 0) "
                     + "FROM commits_files_lines cfl "
                     + "JOIN files fil ON fil.id = cfl.file_id "
-                    + "JOIN actions a ON a.file_id = fil.id) "
-                    + "ORDER BY rev");
+                    + "JOIN actions a ON a.file_id = fil.id "
+                    + "JOIN scmlog s2 ON s2.id = a.commit_id) "
+                    + "ORDER BY s.date ASC");
 
             while (revisions.next()) {
                 int rev = revisions.getInt(1);
