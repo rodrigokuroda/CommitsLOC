@@ -155,7 +155,7 @@ public class Main {
         Path p = Paths.get(filepath);
         String filename = p.getFileName().toString();
 
-        stmt.setString(1, "%" + filepath);
+        stmt.setString(1, p.getNameCount() > 1 ? "%" + filepath : filename);
         stmt.setString(2, filename);
         stmt.setInt(3, rev);
         stmt.setInt(4, inserted);
