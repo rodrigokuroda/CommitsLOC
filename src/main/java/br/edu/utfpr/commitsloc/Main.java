@@ -36,12 +36,36 @@ public class Main {
 //                               --ignore-eol-style: Ignore changes in EOL style
 //                               -p, --show-c-function: Show C function name
     private static final String SVN_DIFF = "svn diff -x -bw -r {1}:{2} {3} | diffstat -t";
-    private static final String INSERT = "INSERT INTO commits_files_lines"
-            + " ( file_id,"
-            + " added,"
-            + " removed)"
-            + " VALUES"
-            + " ((SELECT fil.id FROM files fil JOIN actions a ON fil.id = a.file_id JOIN file_links fill ON fill.file_id = fil.id WHERE fill.file_path LIKE ? AND fil.file_name = ? AND a.commit_id = (SELECT id FROM scmlog WHERE rev = ?)),?,?)";
+    private static final String INSERT
+            = "INSERT INTO commits_files_lines"
+            + " (file_id, added, removed) VALUES ("
+            + "  (SELECT fil.id "
+            + "     FROM files fil "
+            + "     JOIN actions a ON fil.id = a.file_id "
+            + "     JOIN file_links fill ON fill.file_id = fil.id "
+            + "    WHERE fill.file_path LIKE ? "
+            + "      AND fil.file_name = ? "
+            + "      AND a.commit_id = (SELECT s.id FROM scmlog s WHERE s.rev = ?)"
+            + "  ),?,?)";
+
+    private static final String INSERT_FILTERING_BY_PARENT
+            = "INSERT INTO commits_files_lines"
+            + " (file_id, added, removed) VALUES ("
+            + "  (SELECT fil.id"
+            + "     FROM files fil"
+            + "     JOIN actions a ON fil.id = a.file_id"
+            + "     JOIN file_links fill ON fill.file_id = fil.id"
+            + "     JOIN file_links fillp ON fillp.file_id = fill.parent_id"
+            + "     JOIN files filp ON filp.id = fillp.file_id"
+            + "    WHERE fill.file_path LIKE ?"
+            + "      AND fil.file_name = ? "
+            + "      AND fillp.file_path LIKE ?"
+            + "      AND filp.file_name = ?"
+            + "      AND a.commit_id = (SELECT s.id FROM scmlog s WHERE s.rev = ?)"
+            + "   ),?,?)";
+
+    public static final String DIFF_HEADER = "INSERTED,DELETED,MODIFIED,FILENAME";
+    public static final String[] REV1_REV2 = new String[]{"{1}", "{2}"};
 
     private static HikariDataSource ds;
     private static Connection conn;
@@ -118,8 +142,7 @@ public class Main {
     }
 
     private static void executeSvnDiff(String svnDiff, int rev) throws IOException, InterruptedException, SQLException {
-        String command = StringUtils.replaceEach(svnDiff,
-                new String[]{"{1}", "{2}"},
+        String command = StringUtils.replaceEach(svnDiff, REV1_REV2,
                 new String[]{String.valueOf(rev - 1), String.valueOf(rev)});
 
         Process p = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", command});
@@ -132,11 +155,9 @@ public class Main {
         String line;
         while ((line = reader.readLine()) != null) {
             if (StringUtils.isNotBlank(line)
-                    && !StringUtils.equals("INSERTED,DELETED,MODIFIED,FILENAME", line)) {
+                    && !StringUtils.equals(DIFF_HEADER, line)) {
                 log.info(line);
                 insert(line, rev);
-            } else {
-                log.info("Empty line");
             }
         }
 
@@ -149,18 +170,31 @@ public class Main {
     private static void insert(String outputLine, int rev) throws SQLException {
         // INSERTED, DELETED, MODIFIED, FILENAME
         String[] split = StringUtils.split(outputLine, COLUMN_SEPARATOR);
-        PreparedStatement stmt = conn.prepareStatement(INSERT);
+
         int inserted = Integer.valueOf(split[0]);
         int deleted = Integer.valueOf(split[1]);
         String filepath = split[3];
         Path p = Paths.get(filepath);
         String filename = p.getFileName().toString();
 
-        stmt.setString(1, p.getNameCount() > 1 ? "%" + filepath : filename);
-        stmt.setString(2, filename);
-        stmt.setInt(3, rev);
-        stmt.setInt(4, inserted);
-        stmt.setInt(5, deleted);
+        PreparedStatement stmt;
+        if (p.getNameCount() > 1) { // path has parent name
+            stmt = conn.prepareStatement(INSERT_FILTERING_BY_PARENT);
+            stmt.setString(1, "%" + filepath);
+            stmt.setString(2, filename);
+            stmt.setString(3, p.getParent().getNameCount() > 1 ? "%" + p.getParent().toString() : p.getParent().toString());
+            stmt.setString(4, p.getParent().getFileName().toString());
+            stmt.setInt(5, rev);
+            stmt.setInt(6, inserted);
+            stmt.setInt(7, deleted);
+        } else {
+            stmt = conn.prepareStatement(INSERT);
+            stmt.setString(1, filename);
+            stmt.setString(2, filename);
+            stmt.setInt(3, rev);
+            stmt.setInt(4, inserted);
+            stmt.setInt(5, deleted);
+        }
         stmt.executeUpdate();
     }
 
