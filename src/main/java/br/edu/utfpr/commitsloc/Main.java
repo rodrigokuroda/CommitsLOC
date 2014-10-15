@@ -39,7 +39,7 @@ public class Main {
             + " added,"
             + " removed)"
             + " VALUES"
-            + " ((SELECT id FROM file_links WHERE file_path LIKE '%?' AND commit_id = (SELECT id FROM scmlog WHERE rev = ?)),?,?)";
+            + " ((SELECT id FROM file_links WHERE file_path LIKE ? AND commit_id = (SELECT id FROM scmlog WHERE rev = ?)),?,?)";
 
     private static HikariDataSource ds;
     private static Connection conn;
@@ -150,7 +150,7 @@ public class Main {
         int deleted = Integer.valueOf(split[1]);
         String filename = split[3];
 
-        stmt.setString(1, filename);
+        stmt.setString(1, "%" + filename);
         stmt.setInt(2, rev);
         stmt.setInt(3, inserted);
         stmt.setInt(4, deleted);
