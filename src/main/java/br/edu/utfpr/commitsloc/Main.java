@@ -119,20 +119,27 @@ public class Main {
 
             final String svnDiff = StringUtils.replace(SVN_DIFF, "{3}", uri.getString(1));
 
-            Statement revisionsStmt = conn.createStatement();
-            ResultSet revisionsResult = revisionsStmt.executeQuery(
-                    "SELECT s.rev"
+            String revisionsQuery
+                    = "SELECT s.rev"
                     + "  FROM scmlog s"
-                    + " WHERE s.date >"
-                    + "       (SELECT COALESCE(MAX(s2.date), 0)"
-                    + "          FROM commits_files_lines cfl "
-                    + "          JOIN scmlog s2 ON s2.id = cfl.commit_id) "
-                    + "   AND 50 >= "
+                    + " WHERE 50 >="
                     + "       (SELECT count(1)"
                     + "          FROM aries_vcs.files fil"
                     + "          JOIN aries_vcs.actions a ON a.file_id = fil.id"
-                    + "         WHERE s.id = a.commit_id) "
-                    + " ORDER BY s.date ASC");
+                    + "         WHERE s.id = a.commit_id)";
+
+            if (StringUtils.isNotBlank(args[1])) {
+                revisionsQuery
+                        += "   AND s.date >="
+                        + "       (SELECT COALESCE(MAX(s2.date), 0)"
+                        + "          FROM commits_files_lines cfl "
+                        + "          JOIN scmlog s2 ON s2.rev = " + args[1] + ")";
+            }
+            revisionsQuery += " ORDER BY s.date ASC";
+
+            Statement revisionsStmt = conn.createStatement();
+            ResultSet revisionsResult = revisionsStmt.executeQuery(
+                    revisionsQuery);
 
             List<Integer> revisions = new ArrayList<>();
             while (revisionsResult.next()) {
