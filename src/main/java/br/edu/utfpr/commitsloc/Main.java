@@ -43,7 +43,7 @@ public class Main {
     private static final String INSERT
             = "INSERT INTO commits_files_lines"
             + " (file_id, commit_id, added, removed) VALUES ("
-            + "  (SELECT fil.id "
+            + "  (SELECT DISTINCT(fil.id) "
             + "     FROM files fil "
             + "     JOIN actions a ON fil.id = a.file_id "
             + "     JOIN file_links fill ON fill.file_id = fil.id "
@@ -56,7 +56,7 @@ public class Main {
     private static final String INSERT_FILTERING_BY_PARENT
             = "INSERT INTO commits_files_lines"
             + " (file_id, commit_id, added, removed) VALUES ("
-            + "  (SELECT fil.id"
+            + "  (SELECT DISTINCT(fil.id)"
             + "     FROM files fil"
             + "     JOIN actions a ON fil.id = a.file_id"
             + "     JOIN file_links fill ON fill.file_id = fil.id"
