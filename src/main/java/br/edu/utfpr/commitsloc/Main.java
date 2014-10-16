@@ -134,7 +134,7 @@ public class Main {
                     + "       AND a.type NOT IN ('C', 'V')" // ignore file copied or renamed
                     + "    ) BETWEEN 1 AND 50"; // 1 <= #files <= 50
 
-            if (StringUtils.isNotBlank(args[1])) {
+            if (args.length > 1 && StringUtils.isNotBlank(args[1])) {
                 revisionsQuery
                         += "   AND s.date >="
                         + "       (SELECT COALESCE(MAX(s2.date), 0)"
