@@ -186,9 +186,10 @@ public class Main {
         worker.start();
         try {
             worker.join(TIMEOUT);
-            if (worker.exit == null) {
-                log.info("Timeout diff for revision " + rev);
+            if (worker.exit != null) {
                 return;
+            } else {
+                log.info("Timeout diff for revision " + rev);
             }
         } catch (InterruptedException ex) {
             worker.interrupt();
