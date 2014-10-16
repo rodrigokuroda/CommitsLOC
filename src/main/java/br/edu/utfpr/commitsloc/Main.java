@@ -38,7 +38,7 @@ public class Main {
 //                                 amount of white space
 //                               -w, --ignore-all-space: Ignore all white space
 //                               --ignore-eol-style: Ignore changes in EOL style
-//                               -p, --show-c-function: Show C function name
+//                               -process, --show-c-function: Show C function name
     private static final String SVN_DIFF = "svn diff -x -bw -r {1}:{2} {3} | diffstat -t";
     private static final String INSERT
             = "INSERT IGNORE INTO commits_files_lines"
@@ -75,6 +75,7 @@ public class Main {
 
     private static HikariDataSource ds;
     private static Connection conn;
+    private static long TIMEOUT = 10 * 60 * 1000; // 10 min for svn diff
 
     private static HikariDataSource getDatasource(final String databaseName) {
         HikariConfig config = new HikariConfig();
@@ -178,11 +179,26 @@ public class Main {
         String command = StringUtils.replaceEach(svnDiff, REV1_REV2,
                 new String[]{String.valueOf(rev - 1), String.valueOf(rev)});
 
-        Process p = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", command});
+        Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", command});
         log.info(command);
-        p.waitFor();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-        BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+
+        Worker worker = new Worker(process);
+        worker.start();
+        try {
+            worker.join(TIMEOUT);
+            if (worker.exit != null) {
+                return;
+            } else {
+                log.info("Timeout diff for revision " + rev);
+            }
+        } catch (InterruptedException ex) {
+            worker.interrupt();
+            Thread.currentThread().interrupt();
+            throw ex;
+        }
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        BufferedReader error = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
         List<String[]> lines = new ArrayList<>();
 
@@ -212,6 +228,8 @@ public class Main {
         while ((readLine = error.readLine()) != null) {
             log.info(readLine);
         }
+
+        process.destroy();
     }
 
     private static void insert(final String[] outputLine, final int rev) throws SQLException {
@@ -254,4 +272,21 @@ public class Main {
         }
     }
 
+    private static class Worker extends Thread {
+
+        private final Process process;
+        private Integer exit;
+
+        private Worker(Process process) {
+            this.process = process;
+        }
+
+        public void run() {
+            try {
+                exit = process.waitFor();
+            } catch (InterruptedException ignore) {
+                return;
+            }
+        }
+    }
 }
