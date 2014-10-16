@@ -41,7 +41,7 @@ public class Main {
 //                               -p, --show-c-function: Show C function name
     private static final String SVN_DIFF = "svn diff -x -bw -r {1}:{2} {3} | diffstat -t";
     private static final String INSERT
-            = "INSERT INTO commits_files_lines"
+            = "INSERT IGNORE INTO commits_files_lines"
             + " (file_id, commit_id, added, removed) VALUES ("
             + "  (SELECT DISTINCT(fil.id) "
             + "     FROM files fil "
@@ -54,7 +54,7 @@ public class Main {
             + "  ),(SELECT s.id FROM scmlog s WHERE s.rev = ?),?,?)";
 
     private static final String INSERT_FILTERING_BY_PARENT
-            = "INSERT INTO commits_files_lines"
+            = "INSERT IGNORE INTO commits_files_lines"
             + " (file_id, commit_id, added, removed) VALUES ("
             + "  (SELECT DISTINCT(fil.id)"
             + "     FROM files fil"
@@ -104,12 +104,15 @@ public class Main {
             conn = ds.getConnection();
 
             Statement createTable = conn.createStatement();
-            createTable.execute("CREATE TABLE IF NOT EXISTS commits_files_lines ("
-                    + "id INTEGER PRIMARY KEY AUTO_INCREMENT,"
-                    + "file_id INT(11),"
-                    + "commit_id INT(11),"
-                    + "added INTEGER,"
-                    + "removed INTEGER)");
+            createTable.execute(
+                    "CREATE TABLE IF NOT EXISTS commits_files_lines ("
+                    + "  `id` INT(11) AUTO_INCREMENT,"
+                    + "  `file_id` INT(11),"
+                    + "  `commit_id` INT(11),"
+                    + "  `added` INTEGER,"
+                    + "  `removed` INTEGER,"
+                    + "  PRIMARY KEY (`id`),"
+                    + "  UNIQUE KEY `file_commit` (`file_id`,`commit_id`))");
 
             Statement uriStmt = conn.createStatement();
             ResultSet uri = uriStmt.executeQuery(
