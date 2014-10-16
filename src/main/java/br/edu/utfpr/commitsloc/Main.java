@@ -121,13 +121,18 @@ public class Main {
 
             Statement revisionsStmt = conn.createStatement();
             ResultSet revisions = revisionsStmt.executeQuery(
-                    "SELECT s.rev "
-                    + "FROM scmlog s WHERE s.date > (SELECT COALESCE(MAX(s2.date), 0) "
-                    + "FROM commits_files_lines cfl "
-                    + "JOIN files fil ON fil.id = cfl.file_id "
-                    + "JOIN actions a ON a.file_id = fil.id "
-                    + "JOIN scmlog s2 ON s2.id = a.commit_id) "
-                    + "ORDER BY s.date ASC");
+                    "SELECT s.rev"
+                    + "  FROM scmlog s"
+                    + " WHERE s.date >"
+                    + "       (SELECT COALESCE(MAX(s2.date), 0)"
+                    + "          FROM commits_files_lines cfl "
+                    + "          JOIN scmlog s2 ON s2.id = cfl.commit_id) "
+                    + "   AND 100 <= "
+                    + "       (SELECT count(1)"
+                    + "          FROM aries_vcs.files fil"
+                    + "          JOIN aries_vcs.actions a ON a.file_id = fil.id"
+                    + "         WHERE s.id = a.commit_id) "
+                    + " ORDER BY s.date ASC");
 
             while (revisions.next()) {
                 int rev = revisions.getInt(1);
@@ -162,14 +167,9 @@ public class Main {
 
         // reads the output from command
         String readLine = reader.readLine(); // first line is = DIFF_HEADER
-        int linesCount = 0;
         while ((readLine = reader.readLine()) != null) {
             log.info(readLine);
             lines.add(StringUtils.split(readLine, COLUMN_SEPARATOR));
-            if (++linesCount > 100) {
-                log.info(" [files > 100] Ignoring revision " + rev);
-                return;
-            }
         }
 
         // order by file length
