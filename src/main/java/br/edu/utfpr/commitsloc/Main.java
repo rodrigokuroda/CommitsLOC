@@ -12,6 +12,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +42,7 @@ public class Main {
     private static final String SVN_DIFF = "svn diff -x -bw -r {1}:{2} {3} | diffstat -t";
     private static final String INSERT
             = "INSERT INTO commits_files_lines"
-            + " (file_id, added, removed) VALUES ("
+            + " (file_id, commit_id, added, removed) VALUES ("
             + "  (SELECT fil.id "
             + "     FROM files fil "
             + "     JOIN actions a ON fil.id = a.file_id "
@@ -46,11 +50,12 @@ public class Main {
             + "    WHERE fill.file_path LIKE ? "
             + "      AND fil.file_name = ? "
             + "      AND a.commit_id = (SELECT s.id FROM scmlog s WHERE s.rev = ?)"
-            + "  ),?,?)";
+            + "      AND fil.id NOT IN (SELECT cfl.file_id FROM commits_files_lines cfl WHERE cfl.commit_id = a.commit_id)"
+            + "  ),(SELECT s.id FROM scmlog s WHERE s.rev = ?),?,?)";
 
     private static final String INSERT_FILTERING_BY_PARENT
             = "INSERT INTO commits_files_lines"
-            + " (file_id, added, removed) VALUES ("
+            + " (file_id, commit_id, added, removed) VALUES ("
             + "  (SELECT fil.id"
             + "     FROM files fil"
             + "     JOIN actions a ON fil.id = a.file_id"
@@ -62,7 +67,8 @@ public class Main {
             + "      AND fillp.file_path LIKE ?"
             + "      AND filp.file_name = ?"
             + "      AND a.commit_id = (SELECT s.id FROM scmlog s WHERE s.rev = ?)"
-            + "   ),?,?)";
+            + "      AND fil.id NOT IN (SELECT cfl.file_id FROM commits_files_lines cfl WHERE cfl.commit_id = a.commit_id)"
+            + "   ),(SELECT s.id FROM scmlog s WHERE s.rev = ?),?,?)";
 
     public static final String DIFF_HEADER = "INSERTED,DELETED,MODIFIED,FILENAME";
     public static final String[] REV1_REV2 = new String[]{"{1}", "{2}"};
@@ -101,6 +107,7 @@ public class Main {
             createTable.execute("CREATE TABLE IF NOT EXISTS commits_files_lines ("
                     + "id INTEGER PRIMARY KEY AUTO_INCREMENT,"
                     + "file_id INT(11),"
+                    + "commit_id INT(11),"
                     + "added INTEGER,"
                     + "removed INTEGER)");
 
@@ -151,29 +158,45 @@ public class Main {
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
         BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 
+        List<String[]> lines = new ArrayList<>();
+
         // reads the output from command
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (StringUtils.isNotBlank(line)
-                    && !StringUtils.equals(DIFF_HEADER, line)) {
-                log.info(line);
-                insert(line, rev);
+        String readLine = reader.readLine(); // first line is = DIFF_HEADER
+        int linesCount = 0;
+        while ((readLine = reader.readLine()) != null) {
+            log.info(readLine);
+            lines.add(StringUtils.split(readLine, COLUMN_SEPARATOR));
+            if (++linesCount > 100) {
+                log.info(" [files > 100] Ignoring revision " + rev);
+                return;
             }
         }
 
+        // order by file length
+        // workaround for duplicated filename + path issue
+        Collections.sort(lines, new Comparator<String[]>() {
+
+            @Override
+            public int compare(String[] o1, String[] o2) {
+                return o1[3].length() > o2[3].length() ? -1 : 1;
+            }
+        });
+
+        for (String[] line : lines) {
+            insert(line, rev);
+        }
+
         // read any errors from the attempted command
-        while ((line = error.readLine()) != null) {
-            log.info(line);
+        while ((readLine = error.readLine()) != null) {
+            log.info(readLine);
         }
     }
 
-    private static void insert(String outputLine, int rev) throws SQLException {
-        // INSERTED, DELETED, MODIFIED, FILENAME
-        String[] split = StringUtils.split(outputLine, COLUMN_SEPARATOR);
-
-        int inserted = Integer.valueOf(split[0]);
-        int deleted = Integer.valueOf(split[1]);
-        String filepath = split[3];
+    private static void insert(String[] outputLine, int rev) throws SQLException {
+        
+        int inserted = Integer.valueOf(outputLine[0]);
+        int deleted = Integer.valueOf(outputLine[1]);
+        String filepath = outputLine[3];
         Path p = Paths.get(filepath);
         String filename = p.getFileName().toString();
 
@@ -185,15 +208,17 @@ public class Main {
             stmt.setString(3, p.getParent().getNameCount() > 1 ? "%" + p.getParent().toString() : p.getParent().toString());
             stmt.setString(4, p.getParent().getFileName().toString());
             stmt.setInt(5, rev);
-            stmt.setInt(6, inserted);
-            stmt.setInt(7, deleted);
+            stmt.setInt(6, rev);
+            stmt.setInt(7, inserted);
+            stmt.setInt(8, deleted);
         } else {
             stmt = conn.prepareStatement(INSERT);
             stmt.setString(1, filename);
             stmt.setString(2, filename);
             stmt.setInt(3, rev);
-            stmt.setInt(4, inserted);
-            stmt.setInt(5, deleted);
+            stmt.setInt(4, rev);
+            stmt.setInt(5, inserted);
+            stmt.setInt(6, deleted);
         }
         stmt.executeUpdate();
     }
