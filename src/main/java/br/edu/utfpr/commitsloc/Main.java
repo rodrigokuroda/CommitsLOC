@@ -127,7 +127,7 @@ public class Main {
                     + "       (SELECT COALESCE(MAX(s2.date), 0)"
                     + "          FROM commits_files_lines cfl "
                     + "          JOIN scmlog s2 ON s2.id = cfl.commit_id) "
-                    + "   AND 100 >= "
+                    + "   AND 50 >= "
                     + "       (SELECT count(1)"
                     + "          FROM aries_vcs.files fil"
                     + "          JOIN aries_vcs.actions a ON a.file_id = fil.id"
