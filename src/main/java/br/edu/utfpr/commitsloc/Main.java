@@ -125,11 +125,13 @@ public class Main {
             String revisionsQuery
                     = "SELECT s.rev"
                     + "  FROM scmlog s"
-                    + " WHERE 50 >="
-                    + "       (SELECT count(1)"
-                    + "          FROM aries_vcs.files fil"
-                    + "          JOIN aries_vcs.actions a ON a.file_id = fil.id"
-                    + "         WHERE s.id = a.commit_id)";
+                    + " WHERE"
+                    + "   (SELECT count(1)"
+                    + "      FROM aries_vcs.files fil"
+                    + "      JOIN aries_vcs.actions a ON a.file_id = fil.id"
+                    + "     WHERE a.commit_id = s.id"
+                    + "       AND a.type NOT IN ('C', 'V')" // ignore file copied or renamed
+                    + "    ) BETWEEN 1 AND 50"; // 1 <= #files <= 50
 
             if (StringUtils.isNotBlank(args[1])) {
                 revisionsQuery
