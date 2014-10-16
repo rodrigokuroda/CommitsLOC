@@ -209,6 +209,10 @@ public class Main {
         }
 
         log.info("Files: " + lines.size());
+        if (lines.size() > 50) {
+            log.info("Revision " + rev + " has more than 50 files");
+            return;
+        }
         // order by file length
         // workaround for duplicated filename + path issue
         Collections.sort(lines, new Comparator<String[]>() {
