@@ -172,6 +172,7 @@ public class Main {
             lines.add(StringUtils.split(readLine, COLUMN_SEPARATOR));
         }
 
+        log.info("Files: " + lines.size());
         // order by file length
         // workaround for duplicated filename + path issue
         Collections.sort(lines, new Comparator<String[]>() {
@@ -220,7 +221,16 @@ public class Main {
             stmt.setInt(5, inserted);
             stmt.setInt(6, deleted);
         }
-        stmt.executeUpdate();
+        try {
+            stmt.executeUpdate();
+        } catch (java.sql.SQLException e) {
+            log.error("filepath: " + filepath);
+            log.error("filename: " + filename);
+            log.error("parentpath: " + p.getParent().toString());
+            log.error("parentname: " + p.getParent().getFileName().toString());
+            log.error("rev: " + rev);
+            throw e;
+        }
     }
 
 }
