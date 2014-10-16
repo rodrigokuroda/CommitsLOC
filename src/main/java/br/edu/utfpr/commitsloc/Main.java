@@ -76,7 +76,7 @@ public class Main {
     private static HikariDataSource ds;
     private static Connection conn;
 
-    private static HikariDataSource getDatasource(String databaseName) {
+    private static HikariDataSource getDatasource(final String databaseName) {
         HikariConfig config = new HikariConfig();
         config.setMaximumPoolSize(100);
         config.setDataSourceClassName("com.mysql.jdbc.jdbc2.optional.MysqlDataSource");
@@ -117,10 +117,10 @@ public class Main {
                     + "FROM repositories WHERE id = 1");
             uri.next();
 
-            String svnDiff = StringUtils.replace(SVN_DIFF, "{3}", uri.getString(1));
+            final String svnDiff = StringUtils.replace(SVN_DIFF, "{3}", uri.getString(1));
 
             Statement revisionsStmt = conn.createStatement();
-            ResultSet revisions = revisionsStmt.executeQuery(
+            ResultSet revisionsResult = revisionsStmt.executeQuery(
                     "SELECT s.rev"
                     + "  FROM scmlog s"
                     + " WHERE s.date >"
@@ -134,9 +134,18 @@ public class Main {
                     + "         WHERE s.id = a.commit_id) "
                     + " ORDER BY s.date ASC");
 
-            while (revisions.next()) {
-                int rev = revisions.getInt(1);
-                executeSvnDiff(svnDiff, rev);
+            List<Integer> revisions = new ArrayList<>();
+            while (revisionsResult.next()) {
+                revisions.add(revisionsResult.getInt(1));
+            }
+
+            final int total = revisions.size();
+            log.info("Total revisions: " + total);
+
+            int counter = 0;
+            for (Integer revision : revisions) {
+                log.info(++counter + "/" + total);
+                executeSvnDiff(svnDiff, revision);
             }
 
         } catch (Exception ex) {
@@ -153,7 +162,7 @@ public class Main {
         System.exit(0);
     }
 
-    private static void executeSvnDiff(String svnDiff, int rev) throws IOException, InterruptedException, SQLException {
+    private static void executeSvnDiff(final String svnDiff, final int rev) throws IOException, InterruptedException, SQLException {
         String command = StringUtils.replaceEach(svnDiff, REV1_REV2,
                 new String[]{String.valueOf(rev - 1), String.valueOf(rev)});
 
@@ -193,7 +202,7 @@ public class Main {
         }
     }
 
-    private static void insert(String[] outputLine, int rev) throws SQLException {
+    private static void insert(final String[] outputLine, final int rev) throws SQLException {
         
         int inserted = Integer.valueOf(outputLine[0]);
         int deleted = Integer.valueOf(outputLine[1]);
@@ -201,7 +210,7 @@ public class Main {
         Path p = Paths.get(filepath);
         String filename = p.getFileName().toString();
 
-        PreparedStatement stmt;
+        final PreparedStatement stmt;
         if (p.getNameCount() > 1) { // path has parent name
             stmt = conn.prepareStatement(INSERT_FILTERING_BY_PARENT);
             stmt.setString(1, "%" + filepath);
