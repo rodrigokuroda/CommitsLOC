@@ -219,7 +219,12 @@ public class Main {
 
             @Override
             public int compare(String[] o1, String[] o2) {
-                return o1[3].length() > o2[3].length() ? -1 : 1;
+                if (o1[3].length() > o2[3].length()) {
+                    return -1;
+                } else if (o1[3].length() < o2[3].length()) {
+                    return 1;
+                }
+                return 0;
             }
         });
 
