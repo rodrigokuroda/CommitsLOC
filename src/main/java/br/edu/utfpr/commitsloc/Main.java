@@ -133,8 +133,8 @@ public class Main {
                     + "  FROM scmlog s"
                     + " WHERE"
                     + "   (SELECT count(1)"
-                    + "      FROM aries_vcs.files fil"
-                    + "      JOIN aries_vcs.actions a ON a.file_id = fil.id"
+                    + "      FROM files fil"
+                    + "      JOIN actions a ON a.file_id = fil.id"
                     + "     WHERE a.commit_id = s.id"
                     + "       AND a.type NOT IN ('C', 'V')" // ignore file copied or renamed
                     + "    ) BETWEEN 1 AND 50"; // 1 <= #files <= 50
