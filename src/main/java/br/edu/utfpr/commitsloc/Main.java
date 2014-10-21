@@ -104,6 +104,11 @@ public class Main {
             ds = getDatasource(databaseName);
             conn = ds.getConnection();
 
+            if (args.length >= 3 && args[2].equals("droptable")) {
+                Statement dropTable = conn.createStatement();
+                dropTable.execute("DROP TABLE commits_files_lines");
+            }
+
             Statement createTable = conn.createStatement();
             createTable.execute(
                     "CREATE TABLE IF NOT EXISTS commits_files_lines ("
